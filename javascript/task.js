@@ -1,16 +1,16 @@
 const fs = require("fs");
 const args = process.argv.slice(2);
 
-function createFile() {
-    if (!fs.existsSync("task.txt")) {
-        fs.writeFileSync("task.txt", "", 'utf8');
-    }
-    if (!fs.existsSync("completed.txt")) {
-        fs.writeFileSync("completed.txt", "", 'utf8');
+const createFile = (fileName) => {
+    if (!fs.existsSync(fileName)) {
+        fs.writeFileSync(fileName, "", 'utf8');
     }
 }
 
-createFile()
+const createFiles = () => {
+    createFile("task.txt")
+    createFile("completed.txt")
+}
 
 const help = () => {
     console.log("Usage :-")
@@ -35,6 +35,7 @@ const ls = () => {
             const items = value.split(' ');
             const task = items.slice(1,).join(" ")
             const priority = items[0]
+
             if (!completedTasks.includes(task)) {
                 taskStr += `${index}. ${task} [${priority}]\n`
                 index += 1
@@ -64,6 +65,7 @@ const add = (userPriority, userTask) => {
         if (line.trim() !== '') {
             const items = line.split(' ');
             const priority = Number(items[0])
+
             if (priority > Number(userPriority)) {
                 break
             }
@@ -93,6 +95,7 @@ const done = (index) => {
     for (const line of lines) {
         if (line.trim() !== '' && !completedTasks.includes(line.split(" ").slice(1,).join(" "))) {
             count += 1
+
             if (count === parseInt(index)) {
                 found = true
                 fs.appendFileSync("completed.txt", `${line.split(" ").slice(1,).join(" ")}\n`, 'utf8');
@@ -100,7 +103,6 @@ const done = (index) => {
             }
         }
     }
-
 
     if (!found) {
         console.log(`Error: no incomplete item with index #${index} exists.`)
@@ -125,6 +127,7 @@ const del = (index) => {
     for (const line of lines) {
         if (line.trim() !== '' && !completedTasks.includes(line.split(" ").slice(1,).join(" "))) {
             count += 1
+
             if (count === parseInt(index)) {
                 found = true
                 const updatedContent = allTasks.replace(`${line}\n`, '');
@@ -174,6 +177,7 @@ const report = () => {
 }
 
 const main = (args) => {
+    createFiles()
     switch (args[0]) {
         case 'help':
             help()
