@@ -1,8 +1,18 @@
 const fs = require("fs");
 const args = process.argv.slice(2);
 
-fs.writeFileSync("task.txt", '', 'utf8');
-fs.writeFileSync("completed.txt", '', 'utf8');
+function createFile(filename) {
+    fs.open(filename, 'r', function (err) {
+        if (err) {
+            fs.writeFileSync(filename, '', 'utf8')
+        }
+    });
+}
+
+function createFiles() {
+    createFile('task.txt')
+    createFile('completed.txt')
+}
 
 const help = () => {
     console.log("Usage :-")
@@ -15,168 +25,153 @@ const help = () => {
 };
 
 const ls = () => {
-    fs.readFile("task.txt", 'utf8', (err, allTasks) => {
-        if (err) {
-            console.error('Error reading the file:', err);
-            return;
-        }
-        const lines = allTasks.split('\n');
-        let index = 1
-        lines.forEach((value) => {
-            if (value.trim() !== '') {
-                const items = value.split(' ');
-                const task = items.slice(1,).join(" ")
-                const priority = items[0]
-                const completed = fs.readFileSync("completed.txt", 'utf8');
-                if (!completed.includes(task)) {
-                    console.log(`${index}. ${task} [${priority}]`)
-                    index += 1
-                }
+    const allTasks = fs.readFileSync("task.txt", 'utf8');
+    const completedTasks = fs.readFileSync("completed.txt", 'utf8');
+
+    const lines = allTasks.split('\n');
+    let index = 1
+
+    lines.forEach((value) => {
+        if (value.trim() !== '') {
+            const items = value.split(' ');
+            const task = items.slice(1,).join(" ")
+            const priority = items[0]
+            if (!completedTasks.includes(task)) {
+                console.log(`${index}. ${task} [${priority}]`)
+                index += 1
             }
-        })
+        }
     })
 }
 
-const add = (task, priority) => {
-    if(task===undefined || priority===undefined){
-        console.log('Error: Missing tasks string. Nothing added!')
+const add = (userPriority, userTask) => {
+    if (userPriority === undefined || userTask === undefined) {
+        console.log("Error: Missing tasks string. Nothing added!")
         return
     }
-    const newTask = `${priority} ${task}\n`
-    console.log(`Added task: "${task}" with priority ${priority}`)
-    fs.readFile("task.txt", 'utf8', (err, allTasks) => {
-            if (err) {
-                console.error('Error reading the file:', err);
-                return;
-            }
 
-            const lines = allTasks.split('\n');
-            let position = 0
-            for (const line of lines) {
-                if (line.trim() !== '') {
-                    const items = line.split(' ');
-                    const priority = items[0]
-                    if (priority > Number(newTask.split(' ')[0])) {
-                        break
-                    }
-                    position += line.length + 1
-                }
+    const allTasks = fs.readFileSync("task.txt", 'utf8');
+
+    let position = 0
+    const lines = allTasks.split('\n');
+
+    for (const line of lines) {
+        if (line.trim() !== '') {
+            const items = line.split(' ');
+            const priority = Number(items[0])
+            if (priority > Number(userPriority)) {
+                const updatedContent = allTasks.slice(0, position) + `${userPriority} ${userTask}\n` + allTasks.slice(position);
+                fs.writeFileSync("task.txt", updatedContent, 'utf8');
+                break
             }
-            const content = fs.readFileSync("task.txt", 'utf8');
-            const updatedContent = content.slice(0, position) + newTask + content.slice(position);
-            fs.writeFileSync("task.txt", updatedContent, 'utf8');
+            position += line.length + 1
         }
-    )
+    }
+
+    console.log(`Added task: "${userTask}" with priority ${userPriority}`)
 }
 
+
 const done = (index) => {
-    let found = false
-    fs.readFile("task.txt", 'utf8', (err, allTasks) => {
-        if (err) {
-            console.error('Error reading the file:', err);
-            return;
-        }
-        const completed = fs.readFileSync("completed.txt", 'utf8');
-        const lines = allTasks.split('\n');
-        let count = 0
-        for (const line of lines) {
-            if (line.trim() !== '' && !completed.includes(line.split(" ").slice(1,).join(" "))) {
-                count += 1
-                if (count === parseInt(index)) {
-                    found = true
-                    fs.appendFileSync("completed.txt", `${line.split(" ").slice(1,).join(" ")}\n`, 'utf8');
-                    break
-                }
+    const allTasks = fs.readFileSync("task.txt", 'utf8');
+    const completedTasks = fs.readFileSync("completed.txt", 'utf8');
+
+    const lines = allTasks.split('\n');
+    let count = 0
+
+    for (const line of lines) {
+        if (line.trim() !== '' && !completedTasks.includes(line.split(" ").slice(1,).join(" "))) {
+            count += 1
+            if (count === parseInt(index)) {
+                fs.appendFileSync("completed.txt", `${line.split(" ").slice(1,).join(" ")}\n`, 'utf8');
+                break
             }
         }
-    })
-    if (!found) {
-        console.log(`Error: no incomplete item with index ${index} exists.`)
-    }else{
-        console.log(`Marked item as done.`)
     }
+
+    console.log(`Marked item as done.`)
 }
 
 const del = (index) => {
-    let deleted = false
-    fs.readFile("task.txt", 'utf8', (err, allTasks) => {
-        if (err) {
-            console.error('Error reading the file:', err);
-            return;
-        }
-        const completed = fs.readFileSync("completed.txt", 'utf8');
-        const lines = allTasks.split('\n');
-        let count = 0
-        for (const line of lines) {
-            if (line.trim() !== '' && !completed.includes(line.split(" ").slice(1,).join(" "))) {
-                count += 1
-                if (count === parseInt(index)) {
-                    deleted = true
-                    const content = fs.readFileSync("task.txt", 'utf8');
-                    const updatedContent = content.replace(`${line}\n`, '');
-                    fs.writeFileSync("task.txt", updatedContent, 'utf8');
-                    break
-                }
+    const allTasks = fs.readFileSync("task.txt", 'utf8');
+    const completedTasks = fs.readFileSync("completed.txt", 'utf8');
+
+    const lines = allTasks.split('\n');
+    let count = 0
+
+    for (const line of lines) {
+        if (line.trim() !== '' && !completedTasks.includes(line.split(" ").slice(1,).join(" "))) {
+            count += 1
+            if (count === parseInt(index)) {
+                const updatedContent = allTasks.replace(`${line}\n`, '');
+                fs.writeFileSync("task.txt", updatedContent, 'utf8');
+                break
             }
         }
-    })
-    if (!deleted) {
-        console.log(`Error: item with index ${index} does not exist. Nothing deleted.`)
-    }else{
+    }
 
     console.log(`Deleted item with index ${index}`)
-    }
 }
 
 const report = () => {
-    fs.readFile("task.txt", 'utf8', (err, allTasks) => {
-            if (err) {
-                console.error('Error reading the file:', err);
-                return;
-            }
-            const completed = fs.readFileSync("completed.txt", 'utf8');
-            const lines = allTasks.split('\n');
-            let count = 0
-            let completedCount = 0
-            let tasksStr = ''
-            console.log('Pending tasks:')
-            for (const line of lines) {
-                if (line.trim() !== '' && !completed.includes(line.split(" ").slice(1,).join(" "))) {
-                    count += 1
-                    console.log(`${count}. ${line.split(" ").slice(1,).join(" ")} [${line.split(" ")[0]}]`)
-                }
-            }
-            console.log('Completed tasks:')
-            for (const line of completed.split('\n')) {
-                if (line.trim() !== '') {
-                    completedCount += 1
-                    console.log(`${line}`)
-                }
-            }
+    const allTasks = fs.readFileSync("task.txt", 'utf8');
+    const completedTasks = fs.readFileSync("completed.txt", 'utf8');
+
+    const lines = allTasks.split('\n');
+    let taskCount = 0
+    let tasksStr = ''
+
+    for (const line of lines) {
+        if (line.trim() !== '' && !completedTasks.includes(line.split(" ").slice(1,).join(" "))) {
+            taskCount += 1
+            tasksStr += `${taskCount}. ${line.split(" ").slice(1,).join(" ")} [${line.split(" ")[0]}]\n`
         }
-    )
+    }
+
+    console.log(`Pending : ${taskCount}`)
+    console.log(tasksStr)
+
+    console.log('\n')
+
+    let completedCount = 0
+    let completedStr = ''
+
+    for (const line of completedTasks.split('\n')) {
+        if (line.trim() !== '') {
+            completedCount += 1
+            completedStr += `${completedCount}. ${line}\n`
+        }
+    }
+
+    console.log(`Completed : ${completedCount}`)
+    console.log(completedStr)
 }
 
-switch (args[0]) {
-    case 'help':
-        help()
-        break
-    case 'add':
-        add(args[2], args[1])
-        break
-    case 'ls':
-        ls()
-        break
-    case 'done':
-        done(args[1])
-        break
-    case 'del':
-        del(args[1])
-        break
-    case 'report':
-        report()
-        break
-    default:
-        help()
-        break
+const main = (args) => {
+    createFiles()
+    switch (args[0]) {
+        case 'help':
+            help()
+            break
+        case 'ls':
+            ls()
+            break
+        case 'add':
+            add(args[1], args[2])
+            break
+        case 'done':
+            done(args[1])
+            break
+        case 'del':
+            del(args[1])
+            break
+        case 'report':
+            report()
+            break
+        default:
+            help()
+            break
+    }
 }
+
+main(args)
