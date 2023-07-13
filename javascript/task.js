@@ -1,6 +1,17 @@
 const fs = require("fs");
 const args = process.argv.slice(2);
 
+function createFile() {
+    if (!fs.existsSync("task.txt")) {
+        fs.writeFileSync("task.txt", "", 'utf8');
+    }
+    if (!fs.existsSync("completed.txt")) {
+        fs.writeFileSync("completed.txt", "", 'utf8');
+    }
+}
+
+createFile()
+
 const help = () => {
     console.log("Usage :-")
     console.log("$ ./task add 2 hello world    # Add a new item with priority 2 and text \"hello world\" to the list")
